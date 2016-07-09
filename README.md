@@ -1,6 +1,8 @@
 
 # go-keymaker
 
+Note: work-in-progress
+
 Distributed generation of RSA and ECDSA private keys.  Used when a process needs
 a large number of keys generated securely, without overloading the local host.
 A pilot process contacts one or more key generation drones using a simple RPC
