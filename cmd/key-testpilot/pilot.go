@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/signal"
 	"sync/atomic"
 	"time"
 
@@ -39,30 +40,41 @@ func run(cmd *cobra.Command, args []string) {
 	case keyTypes == nil:
 		log.Fatalln("no key types specified")
 	}
-	cfg := &keymaker.ClientConfig{
+
+	client := keymaker.NewClient(&keymaker.ClientConfig{
 		BufferSize: 8,
 		Addresses:  droneAddrs,
-	}
-	client := keymaker.NewClient(cfg)
+	})
+
+	state := &keymaker.State{}
+
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, os.Interrupt)
+	go func() {
+		<-sigCh
+		state.Touch()
+		client.Stop()
+	}()
+
 	for _, k := range keyTypes {
-		go generate(client, k)
+		go generate(state, client, k)
 	}
-	for {
+	for state.OK() {
 		<-time.After(time.Second)
 	}
 }
 
-func generate(client *keymaker.Client, keyType string) {
+func generate(state *keymaker.State, client *keymaker.Client, keyType string) {
 	ch := client.Generate(keyType)
 	count := int32(0)
 	go func() {
-		for {
+		for state.OK() {
 			<-time.After(time.Second)
 			log.Println(keyType, atomic.LoadInt32(&count), "generated")
 		}
 	}()
 	for key := range ch {
-		atomic.AddInt32(&count, 1)
+		count++
 		if verbose {
 			fmt.Println(string(key))
 		}

@@ -30,6 +30,7 @@ type worker struct {
 	keyType string
 	ch      chan []byte
 	exit    int32
+	wg      sync.WaitGroup
 }
 
 // Drone defines an RPC service that generates keys
@@ -92,7 +93,10 @@ func (c *Client) Stop() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	for _, w := range c.workers {
-		atomic.AddInt32(&w.exit, 1)
+		w.stop()
+	}
+	for _, w := range c.workers {
+		w.wait()
 	}
 }
 
@@ -108,9 +112,20 @@ func (c *Client) newWorker(keyType string) *worker {
 	return w
 }
 
+func (w *worker) stop() {
+	atomic.AddInt32(&w.exit, 1)
+}
+
+func (w *worker) wait() {
+	w.wg.Wait()
+	close(w.ch)
+}
+
 // Starts a client in the background, populating this worker's
 // key channel.
 func (w *worker) start(addr string) {
+	w.wg.Add(1)
+
 	// TODO: add tls.Config
 	client := gorpc.NewTCPClient(addr)
 	client.Start()
@@ -141,7 +156,7 @@ func (w *worker) start(addr string) {
 			continue
 		}
 		if res == nil {
-			log.Printf("worker %s received signal to exit", addr)
+			log.Printf("%s %s worker received signal to exit", w.keyType, addr)
 			break
 		}
 
@@ -173,7 +188,7 @@ func (w *worker) start(addr string) {
 
 		w.ch <- k.Key
 	}
-	close(w.ch)
+	w.wg.Done()
 }
 
 // NewDrone creates a Drone service
