@@ -13,3 +13,8 @@ keys are PEM-encoded PKCS#8.
 Primary goal is to keep the system lightweight and simple.  A YAML configuration
 file defines the topology of the system but dynamic discovery of drones using
 Consul (ZK, Etcd) can be added if desired.
+
+
+## Example
+
+![keymaker](misc/keymaker.gif)
