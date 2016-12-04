@@ -1,9 +1,9 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 
 	"github.com/phensley/go-keymaker"
 	"github.com/spf13/cobra"
@@ -13,8 +13,6 @@ const (
 	defaultConfig = `
 address: 0.0.0.0:10101
 concurrency: 0
-
-# TODO: tls config
 `
 )
 
@@ -34,22 +32,20 @@ func main() {
 }
 
 func run(cmd *cobra.Command, args []string) {
-	cfg := &keymaker.DroneConfig{}
+	cfg := &keymaker.DroneConfig{
+		Dir: filepath.Dir(configPath),
+	}
 	err := keymaker.LoadConfig(cfg, []byte(defaultConfig))
-	logFail(err, "reading config defaults:")
+	keymaker.LogFail(err, "reading config defaults:")
+
 	if configPath != "" {
 		err = keymaker.LoadConfigFile(cfg, configPath)
-		logFail(err, "config file %s", configPath)
+		keymaker.LogFail(err, "config file %s", configPath)
 	}
 
-	drone := keymaker.NewDrone(cfg)
+	drone, err := keymaker.NewDrone(cfg)
+	keymaker.LogFail(err, "NewDrone")
 	log.Printf("%s on %s", os.Args[0], cfg.Address)
 	err = drone.Start()
-	logFail(err, "drone start")
-}
-
-func logFail(err error, msg string, args ...interface{}) {
-	if err != nil {
-		log.Fatalln(fmt.Sprintf(msg, args...), err)
-	}
+	keymaker.LogFail(err, "drone.Start()")
 }

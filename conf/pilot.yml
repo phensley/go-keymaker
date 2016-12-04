@@ -1,0 +1,10 @@
+---
+
+addresses:
+  - key-drone-1.example.com:10101
+  - key-drone-2.example.com:10102
+
+certificate: ./pilot-cert.pem
+private_key: ./pilot-key.pem
+ca_bundle: ./ca.pem
+

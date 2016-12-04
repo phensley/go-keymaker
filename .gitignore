@@ -1,3 +1,8 @@
 .DS_Store
+
+*.pem
+*.csr
+
 /vendor
+/.vscode
 

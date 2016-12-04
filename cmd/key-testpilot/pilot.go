@@ -8,6 +8,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"path/filepath"
+
 	"github.com/phensley/go-keymaker"
 	"github.com/spf13/cobra"
 )
@@ -16,7 +18,7 @@ import (
 
 var (
 	verbose    bool
-	droneAddrs []string
+	configPath string
 	keyTypes   []string
 
 	cmd = &cobra.Command{
@@ -28,26 +30,36 @@ var (
 
 func main() {
 	cmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Verbose mode")
-	cmd.Flags().StringSliceVarP(&droneAddrs, "drone", "d", nil, "Drone address")
+	cmd.Flags().StringVarP(&configPath, "config", "c", "", "Path to YAML config file")
 	cmd.Flags().StringSliceVarP(&keyTypes, "type", "t", nil, "Key type")
-	cmd.Execute()
+	err := cmd.Execute()
+	keymaker.LogFail(err, "cmd.Execute()")
 }
 
 func run(cmd *cobra.Command, args []string) {
 	switch {
-	case droneAddrs == nil:
-		log.Fatalln("no drone addresses specified")
+	case configPath == "":
+		log.Fatalln("no config path specified")
 	case keyTypes == nil:
 		log.Fatalln("no key types specified")
 	}
 
-	client := keymaker.NewClient(&keymaker.ClientConfig{
+	for _, t := range keyTypes {
+		err := keymaker.CheckKeyType(t)
+		keymaker.LogFail(err, "CheckKeyType")
+	}
+
+	cfg := &keymaker.ClientConfig{
+		Dir:        filepath.Dir(configPath),
 		BufferSize: 8,
-		Addresses:  droneAddrs,
-	})
+	}
+	err := keymaker.LoadConfigFile(cfg, configPath)
+	keymaker.LogFail(err, "LoadConfigFile", configPath)
+
+	client, err := keymaker.NewClient(cfg)
+	keymaker.LogFail(err, "NewClient")
 
 	state := &keymaker.State{}
-
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, os.Interrupt)
 	go func() {

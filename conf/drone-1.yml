@@ -1,4 +1,11 @@
 ---
-address: 0.0.0.0:10101
+
+address: 127.0.0.1:10101
 concurrency: 4
+
+certificate: ./drone-1-cert.pem
+private_key: ./drone-1-key.pem
+ca_bundle: ./ca.pem
+client_auth: require-and-verify
+client_cn_regexp: '^.*\.example\.com$'
 

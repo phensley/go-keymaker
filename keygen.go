@@ -28,6 +28,9 @@ const (
 )
 
 var (
+	validKeyTypes = []string{RSA1024, RSA2048, RSA4096, ECDSA224, ECDSA256, ECDSA384, ECDSA521}
+)
+var (
 	rsaTypes = map[string]int{
 		RSA1024: 1024,
 		RSA2048: 2048,
@@ -42,11 +45,16 @@ var (
 	}
 )
 
+// CheckKeyType checks if keyType argument is valid
+func CheckKeyType(keyType string) error {
+	if rsaTypes[keyType] == 0 && ecdsaTypes[keyType] == nil {
+		return fmt.Errorf("key type %s is not valid. Use one of: %s",
+			keyType, validKeyTypes)
+	}
+	return nil
+}
+
 // GeneratePrivateKey generates a private key of the given type.
-// The string encodes both the algorithm type and its parameters, and
-// must be one of the known types:
-//  RSA1024, RSA2048, RSA4096
-//  EC224, EC256, EC384, EC521
 func GeneratePrivateKey(keyType string) (crypto.PrivateKey, error) {
 	switch keyType {
 	case RSA1024, RSA2048, RSA4096:
